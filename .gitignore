@@ -1,5 +1,8 @@
 /[Bb]uilds/
 /[Ll]ocal/
 
+# Aseprite extension cache
+__info.json
+
 # Visual Studio cache directory
 .vs/
