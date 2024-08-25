@@ -1,0 +1,25 @@
+{
+    "name": "lento-pic",
+    "displayName": "LentoPic",
+    "description": "LentoPet dev tools",
+    "version": "1",
+    "author": {
+      "name": "Brian Ostrander",
+      "email": "ostrander.brian@gmail.com",
+      "url": "https://ostrander.online/"
+    },
+    "contributors": [],
+    "publisher": "",
+    "license": "MPL-2.0",
+    "categories": [
+      "Scripts"
+    ],
+    "contributes": {
+      "scripts": [
+        {
+          "path": "./lp_main.lua"
+        }
+      ]
+    }
+  }
+  
