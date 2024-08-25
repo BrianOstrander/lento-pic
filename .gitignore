@@ -1,0 +1,5 @@
+/[Bb]uilds/
+/[Ll]ocal/
+
+# Visual Studio cache directory
+.vs/
