@@ -10,13 +10,21 @@ function lp_export.aftercommand(event)
 end
 
 function lp_export.export()
-    local new_filename = lp_export.get_export_filename()
 
-    local data = lp_export.serialize_image()
+    local image = Image(app.editor.sprite)
+
+    local cpp_filename = lp_export.get_cpp_filename()
+    local png_filename = lp_export.get_png_filename()
+
+    local cpp_data = lp_export.get_cpp_data(
+        image
+    )
+
+    image:saveAs(png_filename)
 
     lp_export.save(
-        new_filename,
-        "haha test"
+        cpp_filename,
+        cpp_data
     )
 end
 
@@ -37,44 +45,146 @@ function lp_export.save(
     end
 end
 
-function lp_export.serialize_image()
-    
+function lp_export.get_name()
+    local result = app.editor.sprite.filename
+    local begin_index = string.len(result)
+    local end_index
+
+    while 1 < begin_index do
+        local character = string.sub(result, begin_index, begin_index)
+
+        if charcter == "/" or character == "\\" then
+            begin_index = begin_index + 1
+            break
+        end
+
+        if not end_index then
+            if character == "." then
+                end_index = begin_index - 1
+            end
+        end
+
+        begin_index = begin_index - 1
+    end
+
+    return string.sub(
+        result,
+        begin_index,
+        end_index
+    )
 end
 
-function lp_export.get_export_filename()
-    local new_filename = lp_string.replace(
+function lp_export.get_cpp_filename()
+    return lp_string.replace(
         app.editor.sprite.filename,
         ".aseprite",
         ".txt"
     )
+end
 
-    -- print("High score: "..tostring(score))
-    -- local file,err = io.open("high_score.txt",'w')
-    -- if file then
-    --     file:write(tostring(score))
-    --     file:close()
-    -- else
-    --     print("error:", err) -- not so hard?
-    -- end
+function lp_export.get_png_filename()
+    return lp_string.replace(
+        app.editor.sprite.filename,
+        ".aseprite",
+        ".png"
+    )
+end
 
-    return new_filename
+function lp_export.get_cpp_data(
+    image
+)
+    local name = lp_export.get_name()
+    local result = "// '"..name.."', "
+    result = result..tostring(image.width).."x"..tostring(image.height).."px\n"
+    result = result.."const unsigned char img_"..name.." [] PROGEM = {"
 
-    -- local split_paths = oo_string.split(app.editor.sprite.filename, lp_export.directory_separator)
-    -- local new_filename = ""
+    local bytes = lp_export.get_cpp_data_bytes(image)
 
-    -- for _, v in ipairs(split_paths) do
-    --     if v == oo_unity_sheeter.directory_root then
-    --         break
-    --     end
+    local column_count = 16
 
-    --     new_filename = new_filename..v..oo_unity_sheeter.directory_separator
-    -- end
+    for byte_index, byte in ipairs(bytes) do
 
-    -- new_filename = new_filename..(split_paths[#split_paths])
+        if 1 < byte_index then
+            result = result..", "
+        end
 
-    -- new_filename = oo_string.replace(new_filename, ".aseprite", ".png")
+        if column_count < 16 then
+            column_count = column_count + 1
+        else
+            column_count = 1
+            result = result.."\n\t"
+        end
 
-    -- return new_filename
+        result = result..string.format("0x%02x", byte)
+    end
+
+    result = result.."\n};"
+
+    return result
+end
+
+function lp_export.get_cpp_data_bytes(
+    image
+)
+    local grayscale = {}
+
+    for y = 0, (image.height - 1) do
+        for x = 0, (image.width - 1) do
+            table.insert(
+                grayscale,
+                lp_export.get_cpp_data_pixel_byte(
+                    image,
+                    image:getPixel(x, y)
+                )
+            )
+        end
+    end
+
+    local bitscale = {}
+    local bit_count = 0
+    local current_bit = 0
+
+    for i = 1, #grayscale do
+        if bit_count == 8 then
+            table.insert(
+                bitscale,
+                current_bit
+            )
+            bit_count = 0
+            current_bit = 0
+        end 
+
+        bit_count = bit_count + 1
+        current_bit = (current_bit << 1) | grayscale[i]
+    end
+
+    if 0 < bit_count then
+        table.insert(
+            bitscale,
+            current_bit
+        )
+    end
+
+    return bitscale
+end
+
+function lp_export.get_cpp_data_pixel_byte(
+    image,
+    pixel
+)
+    local alpha = pixel >> 8
+
+    if alpha <= 0x7f then
+        return 0
+    end
+
+    local grayscale = pixel & 0xff
+
+    if grayscale < 0x7f then
+        return 1
+    end
+
+    return 0
 end
 
 return lp_export
